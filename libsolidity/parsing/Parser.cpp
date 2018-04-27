@@ -1178,20 +1178,20 @@ ASTPointer<VariableDeclarationStatement> Parser::parseVariableDeclarationStateme
 
 ASTPointer<ExpressionStatement> Parser::parseExpressionStatement(
 	ASTPointer<ASTString> const& _docString,
-	ASTPointer<Expression> const& _lookAheadIndexAccessStructure
+	ASTPointer<Expression> const& _partialParserResult
 )
 {
 	RecursionGuard recursionGuard(*this);
-	ASTPointer<Expression> expression = parseExpression(_lookAheadIndexAccessStructure);
+	ASTPointer<Expression> expression = parseExpression(_partialParserResult);
 	return ASTNodeFactory(*this, expression).createNode<ExpressionStatement>(_docString, expression);
 }
 
 ASTPointer<Expression> Parser::parseExpression(
-	ASTPointer<Expression> const& _lookAheadIndexAccessStructure
+	ASTPointer<Expression> const& _partiallyParsedExpression
 )
 {
 	RecursionGuard recursionGuard(*this);
-	ASTPointer<Expression> expression = parseBinaryExpression(4, _lookAheadIndexAccessStructure);
+	ASTPointer<Expression> expression = parseBinaryExpression(4, _partiallyParsedExpression);
 	if (Token::isAssignmentOp(m_scanner->currentToken()))
 	{
 		Token::Value assignmentOperator = expectAssignmentOperator();
@@ -1216,11 +1216,11 @@ ASTPointer<Expression> Parser::parseExpression(
 
 ASTPointer<Expression> Parser::parseBinaryExpression(
 	int _minPrecedence,
-	ASTPointer<Expression> const& _lookAheadIndexAccessStructure
+	ASTPointer<Expression> const& _partiallyParsedExpression
 )
 {
 	RecursionGuard recursionGuard(*this);
-	ASTPointer<Expression> expression = parseUnaryExpression(_lookAheadIndexAccessStructure);
+	ASTPointer<Expression> expression = parseUnaryExpression(_partiallyParsedExpression);
 	ASTNodeFactory nodeFactory(*this, expression);
 	int precedence = Token::precedence(m_scanner->currentToken());
 	for (; precedence >= _minPrecedence; --precedence)
@@ -1236,14 +1236,14 @@ ASTPointer<Expression> Parser::parseBinaryExpression(
 }
 
 ASTPointer<Expression> Parser::parseUnaryExpression(
-	ASTPointer<Expression> const& _lookAheadIndexAccessStructure
+	ASTPointer<Expression> const& _partiallyParsedExpression
 )
 {
 	RecursionGuard recursionGuard(*this);
-	ASTNodeFactory nodeFactory = _lookAheadIndexAccessStructure ?
-		ASTNodeFactory(*this, _lookAheadIndexAccessStructure) : ASTNodeFactory(*this);
+	ASTNodeFactory nodeFactory = _partiallyParsedExpression ?
+		ASTNodeFactory(*this, _partiallyParsedExpression) : ASTNodeFactory(*this);
 	Token::Value token = m_scanner->currentToken();
-	if (!_lookAheadIndexAccessStructure && (Token::isUnaryOp(token) || Token::isCountOp(token)))
+	if (!_partiallyParsedExpression && (Token::isUnaryOp(token) || Token::isCountOp(token)))
 	{
 		// prefix expression
 		m_scanner->next();
@@ -1254,7 +1254,7 @@ ASTPointer<Expression> Parser::parseUnaryExpression(
 	else
 	{
 		// potential postfix expression
-		ASTPointer<Expression> subExpression = parseLeftHandSideExpression(_lookAheadIndexAccessStructure);
+		ASTPointer<Expression> subExpression = parseLeftHandSideExpression(_partiallyParsedExpression);
 		token = m_scanner->currentToken();
 		if (!Token::isCountOp(token))
 			return subExpression;
@@ -1265,16 +1265,16 @@ ASTPointer<Expression> Parser::parseUnaryExpression(
 }
 
 ASTPointer<Expression> Parser::parseLeftHandSideExpression(
-	ASTPointer<Expression> const& _lookAheadIndexAccessStructure
+	ASTPointer<Expression> const& _partiallyParsedExpression
 )
 {
 	RecursionGuard recursionGuard(*this);
-	ASTNodeFactory nodeFactory = _lookAheadIndexAccessStructure ?
-		ASTNodeFactory(*this, _lookAheadIndexAccessStructure) : ASTNodeFactory(*this);
+	ASTNodeFactory nodeFactory = _partiallyParsedExpression ?
+		ASTNodeFactory(*this, _partiallyParsedExpression) : ASTNodeFactory(*this);
 
 	ASTPointer<Expression> expression;
-	if (_lookAheadIndexAccessStructure)
-		expression = _lookAheadIndexAccessStructure;
+	if (_partiallyParsedExpression)
+		expression = _partiallyParsedExpression;
 	else if (m_scanner->currentToken() == Token::New)
 	{
 		expectToken(Token::New);
