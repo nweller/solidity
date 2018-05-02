@@ -171,10 +171,10 @@ TMPDIR=$(mktemp -d)
     result=$?
     set -e
 
-	# No input error
+    # This should fail
     if [[ !("$output" =~ "No input files given") || ($result == 0) ]] ; then
-		printError "Incorrect response to empty input arg list: $STDERR"
-	exit 1
+        printError "Incorrect response to empty input arg list: $STDERR"
+        exit 1
     fi
 
     set +e
@@ -182,9 +182,9 @@ TMPDIR=$(mktemp -d)
     result=$?
     set -e
 
-    # Something should happen
+    # The contract should be compiled
     if [[ "$result" != 0 ]] ; then
-	    exit 1
+        exit 1
     fi
 )
 
