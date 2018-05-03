@@ -109,6 +109,7 @@ private:
 	virtual bool visit(VariableDeclarationStatement const& _variableDeclarationStatement) override;
 	virtual bool visit(ExpressionStatement const& _expressionStatement) override;
 	virtual bool visit(PlaceholderStatement const&) override;
+	virtual void endVisit(Block const& _block) override;
 
 	/// Repeatedly visits all function which are referenced but which are not compiled yet.
 	void appendMissingFunctions();
@@ -123,6 +124,12 @@ private:
 	/// @returns the runtime assembly for clone contracts.
 	eth::AssemblyPointer cloneRuntime() const;
 
+	/// Adds a new scoped variable.
+	void addScopedVariable(VariableDeclaration const& _decl);
+
+	/// Frees the variables of a certain scope (to be used when leaving).
+	void popScopedVariables(ASTNode const* _node);
+
 	bool const m_optimise;
 	/// Pointer to the runtime compiler in case this is a creation compiler.
 	ContractCompiler* m_runtimeCompiler = nullptr;
@@ -136,6 +143,9 @@ private:
 	unsigned m_stackCleanupForReturn = 0; ///< this number of stack elements need to be removed before jump to m_returnTag
 	// arguments for base constructors, filled in derived-to-base order
 	std::map<FunctionDefinition const*, ASTNode const*> const* m_baseArguments;
+
+	/// Stores the variables that were declared inside a specific scope.
+	std::map<ASTNode const*, std::vector<VariableDeclaration const*>> m_scopeVariables;
 };
 
 }

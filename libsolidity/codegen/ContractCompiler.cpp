@@ -427,7 +427,7 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 	m_context.startFunction(_function);
 
 	// stack upon entry: [return address] [arg0] [arg1] ... [argn]
-	// reserve additional slots: [retarg0] ... [retargm] [localvar0] ... [localvarp]
+	// reserve additional slots: [retarg0] ... [retargm]
 
 	unsigned parametersSize = CompilerUtils::sizeOnStack(_function.parameters());
 	if (!_function.isConstructor())
@@ -441,8 +441,6 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 
 	for (ASTPointer<VariableDeclaration const> const& variable: _function.returnParameters())
 		appendStackVariableInitialisation(*variable);
-	for (VariableDeclaration const* localVariable: _function.localVariables())
-		appendStackVariableInitialisation(*localVariable);
 
 	if (_function.isConstructor())
 		if (auto c = m_context.nextConstructor(dynamic_cast<ContractDefinition const&>(*_function.scope())))
@@ -467,14 +465,12 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 
 	unsigned const c_argumentsSize = CompilerUtils::sizeOnStack(_function.parameters());
 	unsigned const c_returnValuesSize = CompilerUtils::sizeOnStack(_function.returnParameters());
-	unsigned const c_localVariablesSize = CompilerUtils::sizeOnStack(_function.localVariables());
 
 	vector<int> stackLayout;
 	stackLayout.push_back(c_returnValuesSize); // target of return address
 	stackLayout += vector<int>(c_argumentsSize, -1); // discard all arguments
 	for (unsigned i = 0; i < c_returnValuesSize; ++i)
 		stackLayout.push_back(i);
-	stackLayout += vector<int>(c_localVariablesSize, -1);
 
 	if (stackLayout.size() > 17)
 		BOOST_THROW_EXCEPTION(
@@ -497,8 +493,6 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 
 	for (ASTPointer<VariableDeclaration const> const& variable: _function.parameters() + _function.returnParameters())
 		m_context.removeVariable(*variable);
-	for (VariableDeclaration const* localVariable: _function.localVariables())
-		m_context.removeVariable(*localVariable);
 
 	m_context.adjustStackOffset(-(int)c_returnValuesSize);
 
@@ -735,6 +729,10 @@ bool ContractCompiler::visit(ForStatement const& _forStatement)
 	m_context.appendJumpTo(loopStart);
 	m_context << loopEnd;
 
+	// Frees local variables that were declared in the initialization expression,
+	// since their scope is the for statement.
+	popScopedVariables(&_forStatement);
+
 	m_continueTags.pop_back();
 	m_breakTags.pop_back();
 
@@ -806,8 +804,14 @@ bool ContractCompiler::visit(EmitStatement const& _emit)
 
 bool ContractCompiler::visit(VariableDeclarationStatement const& _variableDeclarationStatement)
 {
-	StackHeightChecker checker(m_context);
 	CompilerContext::LocationSetter locationSetter(m_context, _variableDeclarationStatement);
+
+	// Local variable slots are reserved when their declaration is seen,
+	// and freed in the end of their scope.
+	for (auto _decl : _variableDeclarationStatement.declarations())
+		addScopedVariable(*_decl);
+
+	StackHeightChecker checker(m_context);
 	if (Expression const* expression = _variableDeclarationStatement.initialValue())
 	{
 		CompilerUtils utils(m_context);
@@ -855,6 +859,12 @@ bool ContractCompiler::visit(PlaceholderStatement const& _placeholderStatement)
 	appendModifierOrFunctionCode();
 	checker.check();
 	return true;
+}
+
+void ContractCompiler::endVisit(Block const& _block)
+{
+	// Frees local variables declared in the scope of this block.
+	popScopedVariables(&_block);
 }
 
 void ContractCompiler::appendMissingFunctions()
@@ -978,4 +988,21 @@ eth::AssemblyPointer ContractCompiler::cloneRuntime() const
 	//@todo adjust for larger return values, make this dynamic.
 	a << u256(0x20) << u256(0) << Instruction::RETURN;
 	return make_shared<eth::Assembly>(a);
+}
+
+void ContractCompiler::addScopedVariable(VariableDeclaration const& _decl)
+{
+	// TODO check > 17
+	m_scopeVariables[_decl.scope()].emplace_back(&_decl);
+	appendStackVariableInitialisation(_decl);
+}
+
+void ContractCompiler::popScopedVariables(ASTNode const* _node)
+{
+	for (auto _decl : m_scopeVariables[_node])
+	{
+		m_context << Instruction::POP;
+		m_context.removeVariable(*_decl);
+	}
+	m_scopeVariables.erase(_node);
 }
