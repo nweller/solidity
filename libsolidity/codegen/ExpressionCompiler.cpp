@@ -692,6 +692,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				solAssert(function.parameterTypes().size() == 1, "");
 				arguments.front()->accept(*this);
 				utils().revertWithStringData(*arguments.front()->annotation().type);
+				utils().popStackElement(*arguments.front()->annotation().type);
 			}
 			else
 				m_context.appendRevert();
