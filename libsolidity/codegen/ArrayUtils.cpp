@@ -216,7 +216,7 @@ void ArrayUtils::copyArrayToStorage(ArrayType const& _targetType, ArrayType cons
 				// stack: target_ref target_data_end source_data_pos target_data_pos source_data_end [target_byte_offset] [source_byte_offset] <source_value>...
 				solAssert(
 					2 + byteOffsetSize + sourceBaseType->sizeOnStack() <= 16,
-					"Stack too deep, try removing local variables."
+					"#10 Stack too deep, try removing local variables."
 				);
 				// fetch target storage reference
 				_context << dupInstruction(2 + byteOffsetSize + sourceBaseType->sizeOnStack());

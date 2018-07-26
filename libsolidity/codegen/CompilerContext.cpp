@@ -321,7 +321,7 @@ void CompilerContext::appendInlineAssembly(
 			BOOST_THROW_EXCEPTION(
 				CompilerError() <<
 				errinfo_sourceLocation(_identifier.location) <<
-				errinfo_comment("Stack too deep (" + to_string(stackDiff) + "), try removing local variables.")
+				errinfo_comment("#16 Stack too deep (" + to_string(stackDiff) + "), try removing local variables.")
 			);
 		if (_context == julia::IdentifierContext::RValue)
 			_assembly.appendInstruction(dupInstruction(stackDiff));

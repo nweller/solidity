@@ -180,7 +180,7 @@ void ExpressionCompiler::appendStateVariableAccessor(VariableDeclaration const& 
 		BOOST_THROW_EXCEPTION(
 			CompilerError() <<
 			errinfo_sourceLocation(_varDecl.location()) <<
-			errinfo_comment("Stack too deep.")
+			errinfo_comment("#17 Stack too deep.")
 		);
 	m_context << dupInstruction(retSizeOnStack + 1);
 	m_context.appendJump(eth::AssemblyItem::JumpType::OutOfFunction);
@@ -264,7 +264,7 @@ bool ExpressionCompiler::visit(Assignment const& _assignment)
 				BOOST_THROW_EXCEPTION(
 					CompilerError() <<
 					errinfo_sourceLocation(_assignment.location()) <<
-					errinfo_comment("Stack too deep, try removing local variables.")
+					errinfo_comment("#18 Stack too deep, try removing local variables.")
 				);
 			// value [lvalue_ref] updated_value
 			for (unsigned i = 0; i < itemSize; ++i)

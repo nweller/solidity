@@ -45,7 +45,7 @@ void StackVariable::retrieveValue(SourceLocation const& _location, bool) const
 		BOOST_THROW_EXCEPTION(
 			CompilerError() <<
 			errinfo_sourceLocation(_location) <<
-			errinfo_comment("Stack too deep, try removing local variables.")
+			errinfo_comment("#5 Stack too deep, try removing local variables.")
 		);
 	solAssert(stackPos + 1 >= m_size, "Size and stack pos mismatch.");
 	for (unsigned i = 0; i < m_size; ++i)
@@ -59,7 +59,7 @@ void StackVariable::storeValue(Type const&, SourceLocation const& _location, boo
 		BOOST_THROW_EXCEPTION(
 			CompilerError() <<
 			errinfo_sourceLocation(_location) <<
-			errinfo_comment("Stack too deep, try removing local variables.")
+			errinfo_comment("#6 Stack too deep, try removing local variables.")
 		);
 	else if (stackDiff > 0)
 		for (unsigned i = 0; i < m_size; ++i)

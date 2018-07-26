@@ -480,7 +480,7 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 		BOOST_THROW_EXCEPTION(
 			CompilerError() <<
 			errinfo_sourceLocation(_function.location()) <<
-			errinfo_comment("Stack too deep, try removing local variables.")
+			errinfo_comment("#7 Stack too deep, try removing local variables.")
 		);
 	while (stackLayout.back() != int(stackLayout.size() - 1))
 		if (stackLayout.back() < 0)
@@ -591,7 +591,7 @@ bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 						BOOST_THROW_EXCEPTION(
 							CompilerError() <<
 							errinfo_sourceLocation(_inlineAssembly.location()) <<
-							errinfo_comment("Stack too deep, try removing local variables.")
+							errinfo_comment("#8 Stack too deep, try removing local variables.")
 						);
 					solAssert(variable->type()->sizeOnStack() == 1, "");
 					_assembly.appendInstruction(dupInstruction(stackDiff));
@@ -624,7 +624,7 @@ bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 				BOOST_THROW_EXCEPTION(
 					CompilerError() <<
 					errinfo_sourceLocation(_inlineAssembly.location()) <<
-					errinfo_comment("Stack too deep(" + to_string(stackDiff) + "), try removing local variables.")
+					errinfo_comment("#9 Stack too deep(" + to_string(stackDiff) + "), try removing local variables.")
 				);
 			_assembly.appendInstruction(swapInstruction(stackDiff));
 			_assembly.appendInstruction(Instruction::POP);
