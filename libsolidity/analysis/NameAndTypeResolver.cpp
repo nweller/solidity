@@ -31,6 +31,8 @@
 
 using namespace std;
 
+#include <libsolidity/ast/ASTJsonConverter.h>
+
 namespace dev
 {
 namespace solidity
@@ -387,6 +389,8 @@ void NameAndTypeResolver::linearizeBaseContracts(ContractDefinition& _contract)
 	if (result.empty())
 		m_errorReporter.fatalTypeError(_contract.location(), "Linearization of inheritance graph impossible");
 	_contract.annotation().linearizedBaseContracts = result;
+
+
 	_contract.annotation().contractDependencies.insert(result.begin() + 1, result.end());
 }
 

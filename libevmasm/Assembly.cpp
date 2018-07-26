@@ -353,6 +353,13 @@ void Assembly::injectStart(AssemblyItem const& _i)
 	m_items.insert(m_items.begin(), _i);
 }
 
+
+static unsigned int jumpDestRemovals;
+static unsigned int peepholeOptimizations;
+static unsigned int blockDeduplications;
+static unsigned int CSEOptimizations;
+static unsigned int constantOptimizations;
+
 Assembly& Assembly::optimise(bool _enable, EVMVersion _evmVersion, bool _isCreation, size_t _runs)
 {
 	OptimiserSettings settings;
@@ -368,6 +375,8 @@ Assembly& Assembly::optimise(bool _enable, EVMVersion _evmVersion, bool _isCreat
 	settings.evmVersion = _evmVersion;
 	settings.expectedExecutionsPerDeployment = _runs;
 	optimise(settings);
+
+	cerr << "### " <<  jumpDestRemovals << " " << peepholeOptimizations << " " << blockDeduplications << " " << CSEOptimizations << " " << constantOptimizations << endl;
 	return *this;
 }
 
@@ -376,6 +385,13 @@ Assembly& Assembly::optimise(OptimiserSettings const& _settings)
 {
 	optimiseInternal(_settings, {});
 	return *this;
+}
+
+static void
+increment(unsigned& first, unsigned& second)
+{
+	++first;
+	++second;
 }
 
 map<u256, u256> Assembly::optimiseInternal(
@@ -407,7 +423,7 @@ map<u256, u256> Assembly::optimiseInternal(
 		{
 			JumpdestRemover jumpdestOpt(m_items);
 			if (jumpdestOpt.optimise(_tagsReferencedFromOutside))
-				count++;
+				increment(count, jumpDestRemovals);  //count++;
 		}
 
 		if (_settings.runPeephole)
@@ -415,7 +431,7 @@ map<u256, u256> Assembly::optimiseInternal(
 			PeepholeOptimiser peepOpt(m_items);
 			while (peepOpt.optimise())
 			{
-				count++;
+				increment(count, peepholeOptimizations); //count++;
 				assertThrow(count < 64000, OptimizerException, "Peephole optimizer seems to be stuck.");
 			}
 		}
@@ -427,7 +443,7 @@ map<u256, u256> Assembly::optimiseInternal(
 			if (dedup.deduplicate())
 			{
 				tagReplacements.insert(dedup.replacedTags().begin(), dedup.replacedTags().end());
-				count++;
+				increment(count, blockDeduplications); //count++;
 			}
 		}
 
@@ -467,7 +483,7 @@ map<u256, u256> Assembly::optimiseInternal(
 
 				if (shouldReplace)
 				{
-					count++;
+					increment(count, CSEOptimizations); //count++;
 					optimisedItems += optimisedChunk;
 				}
 				else
@@ -476,19 +492,20 @@ map<u256, u256> Assembly::optimiseInternal(
 			if (optimisedItems.size() < m_items.size())
 			{
 				m_items = move(optimisedItems);
-				count++;
+				increment(count, CSEOptimizations); //count++;
 			}
 		}
 	}
 
 	if (_settings.runConstantOptimiser)
-		ConstantOptimisationMethod::optimiseConstants(
+		if (ConstantOptimisationMethod::optimiseConstants(
 			_settings.isCreation,
 			_settings.isCreation ? 1 : _settings.expectedExecutionsPerDeployment,
 			_settings.evmVersion,
 			*this,
 			m_items
-		);
+		) > 0)
+		++constantOptimizations;
 
 	return tagReplacements;
 }
